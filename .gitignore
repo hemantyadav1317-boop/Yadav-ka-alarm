@@ -1,0 +1,21 @@
+# Flutter / Dart
+build/
+**/build/
+.dart_tool/
+**/.dart_tool/
+.gradle/
+**/.gradle/
+.pub-cache/
+**/.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS
+Thumbs.db
+.DS_Store

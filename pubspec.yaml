@@ -1,0 +1,13 @@
+name: aeon_wake
+description: AEON Neural Wake Protocol - Flutter wrapper
+version: 1.0.0+1
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  webview_flutter: ^4.10.0
+  permission_handler: ^11.3.1
+  wakelock_plus: ^1.2.8
+flutter:
+  uses-material-design: true
