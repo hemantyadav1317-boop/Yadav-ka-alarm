@@ -10,7 +10,9 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.media.AudioAttributes
+import android.media.AudioFormat
 import android.media.AudioManager
+import android.media.AudioTrack
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
@@ -140,6 +142,12 @@ class MainActivity : FlutterActivity(), SensorEventListener {
                     stopStepTracker()
                     result.success(null)
                 }
+                "playCyberSound" -> {
+                    val soundType = call.argument<String>("type") ?: "click"
+                    val freq = call.argument<Double>("freq") ?: 0.0
+                    playCyberSound(soundType, freq)
+                    result.success(null)
+                }
                 "requestFullScreenIntent" -> {
                     if (Build.VERSION.SDK_INT >= 34) {
                         try {
@@ -156,6 +164,74 @@ class MainActivity : FlutterActivity(), SensorEventListener {
         intent?.getStringExtra("alarmId")?.let {
             channel.invokeMethod("alarmFired", mapOf("id" to it, "label" to (intent.getStringExtra("label") ?: "Yadav Wake Alert")))
         }
+    }
+
+    // Zero-latency PCM Audio Synthesizer for instant futuristic sci-fi sound effects
+    private fun playCyberSound(type: String, extraFreq: Double = 0.0) {
+        Thread {
+            try {
+                val sampleRate = 22050
+                val durationMs = when (type) {
+                    "click" -> 45
+                    "toggle_on" -> 70
+                    "toggle_off" -> 70
+                    "keypad" -> 40
+                    "confirm", "disarm" -> 160
+                    "error" -> 110
+                    "swipe" -> 35
+                    else -> 40
+                }
+                val numSamples = (durationMs * sampleRate) / 1000
+                val samples = ShortArray(numSamples)
+                
+                for (i in 0 until numSamples) {
+                    val t = i.toDouble() / sampleRate
+                    val progress = i.toDouble() / numSamples
+                    val amp = (1.0 - progress) * 0.75
+                    
+                    val freq = when (type) {
+                        "click" -> 850.0 + progress * 1100.0 // 850Hz -> 1950Hz upward cyber chirp
+                        "toggle_on" -> if (progress < 0.5) 440.0 else 880.0
+                        "toggle_off" -> if (progress < 0.5) 880.0 else 330.0
+                        "keypad" -> if (extraFreq > 0) extraFreq else 950.0 + (progress * 200.0)
+                        "confirm", "disarm" -> when {
+                            progress < 0.33 -> 587.33
+                            progress < 0.66 -> 880.0
+                            else -> 1174.66
+                        }
+                        "error" -> 260.0 - progress * 140.0
+                        "swipe" -> 400.0 + Math.sin(progress * Math.PI) * 300.0
+                        else -> 900.0
+                    }
+                    
+                    val wave = Math.sin(2.0 * Math.PI * freq * t)
+                    samples[i] = (wave * amp * Short.MAX_VALUE).toInt().toShort()
+                }
+                
+                val track = AudioTrack.Builder()
+                    .setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    .setAudioFormat(
+                        AudioFormat.Builder()
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(sampleRate)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                            .build()
+                    )
+                    .setBufferSizeInBytes(samples.size * 2)
+                    .setTransferMode(AudioTrack.MODE_STATIC)
+                    .build()
+                    
+                track.write(samples, 0, samples.size)
+                track.play()
+                Thread.sleep(durationMs.toLong() + 20)
+                track.release()
+            } catch (_: Exception) {}
+        }.start()
     }
 
     private fun maxVolume() {

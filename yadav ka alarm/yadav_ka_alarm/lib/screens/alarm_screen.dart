@@ -5,6 +5,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
+import '../services/sound_service.dart';
 
 class AlarmScreen extends StatefulWidget {
   final AlarmModel alarm;
@@ -120,11 +121,13 @@ class _AlarmScreenState extends State<AlarmScreen> with SingleTickerProviderStat
 
   void _submitMathKey(String key) {
     if (key == 'DEL') {
+      SoundService.error();
       if (_userAnswer.isNotEmpty) {
         setState(() => _userAnswer = _userAnswer.substring(0, _userAnswer.length - 1));
       }
     } else if (key == 'ENTER') {
       if (int.tryParse(_userAnswer) == _expectedAnswer) {
+        SoundService.confirm();
         setState(() {
           _mathSolvedCount++;
           if (_mathSolvedCount >= _mathTarget) {
@@ -134,12 +137,14 @@ class _AlarmScreenState extends State<AlarmScreen> with SingleTickerProviderStat
           }
         });
       } else {
+        SoundService.error();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Galat jawab! Phir se prayas karein.'), backgroundColor: Colors.red),
         );
         setState(() => _userAnswer = '');
       }
     } else {
+      SoundService.keypad(int.tryParse(key) ?? 1);
       if (_userAnswer.length < 5) {
         setState(() => _userAnswer += key);
       }
@@ -149,6 +154,7 @@ class _AlarmScreenState extends State<AlarmScreen> with SingleTickerProviderStat
   Future<void> _disarm() async {
     if (_isDisarmed) return;
     setState(() => _isDisarmed = true);
+    SoundService.confirm();
     _accelerometerSub?.cancel();
     _pulseController.stop();
 
